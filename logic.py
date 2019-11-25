@@ -1,8 +1,8 @@
-from time import time
-import keyboard
 import os
-
 from random import randrange
+from time import time
+
+import keyboard
 
 # Direction constants
 N = NORTH = "n"
@@ -95,6 +95,7 @@ class SnakeNode:
         self.Y = pos_y
 
         self.direction = E  # N S E W
+        self.new_direction = E  # Used for updating the position
 
         self.is_head = is_head
 
@@ -130,11 +131,11 @@ class SnakeNode:
             self.Y += 1
         elif self.direction == E:
             self.X += 1
-        elif self.direction == W:
+        elif self.new_direction == W:
             self.X -= 1
         else:
             # Default to north if there invalid data in the Direction attr
-            report_error(f"SnakeNode.Direction ({self.Direction}) is not one of the 4 directions required. ({N}, {S}, {E} or {W})",
+            report_error(f"SnakeNode.Direction ({self.direction}) is not one of the 4 directions required. ({N}, {S}, {E} or {W})",
                          error_type=TypeError, raise_err=True)
 
             self.direction = N
@@ -165,11 +166,17 @@ class SnakeNode:
             elif direction == E and self.direction == W:
                 return False
             else:
-                self.direction = direction
+                self.new_direction = direction
                 return True
         else:
             report_error(f"SnakeNode.Direction is not one of the 4 directions required. ({N}, {S}, {E} or {W})")
             return False
+
+    def cement_direction(self):
+        """Sets the direction to the new direction if they aren't already the same"""
+        """This function prevents the snake from going back on itself by pressing two directions in a tick"""
+        if self.new_direction != self.direction:
+            self.direction = self.new_direction
 
     def level_up(self):
         """Increase the snakes length and level"""
@@ -185,7 +192,7 @@ class SnakeNode:
 class Game:
     """The main game handler"""
     def __init__(self, ms_per_update: int = 100, wrapping: bool = True,
-                 console_output: bool = False, get_input:bool = False):
+                 console_output: bool = False, get_input: bool = False):
         # Tick speed
         # Runs an update every given milliseconds
         self.update_every_ms = ms_per_update
@@ -202,6 +209,30 @@ class Game:
         AllSnakeNodes.append(self.snake)
 
         self.GameOn = False
+        self.GameState = "Off"
+
+    def start_game(self):
+        self.GameOn = True
+        self.last_update = time()
+
+    def game_single_loop(self):
+        if self.GameOn:
+            # Move the snake and then check for collision
+            cur_time = time()
+            if cur_time - self.last_update > self.update_every_ms / 1000:
+                self.snake.cement_direction()
+                self.snake.update_position()
+                if self.collision_detection():
+                    self.GameOn = False
+                    self.GameState == "GameOver"
+
+                self.last_update = time()
+
+                if self.console_output:
+                    os.system('cls')
+                    self.print_board()
+        else:
+            pass
 
     def game_loop(self):
         """The main game loop"""
@@ -211,8 +242,6 @@ class Game:
 
         while self.GameOn:
             if self.get_input:
-                # TODO: Create a proper key event handler. Maybe use threading/asycnio
-                # Though i think this would be better suited in the Game file, not sure yet
                 if keyboard.is_pressed('up'):
                     self.snake.update_direction(N)
                 elif keyboard.is_pressed('left'):
@@ -225,6 +254,7 @@ class Game:
             # Move the snake and then check for collision
             cur_time = time()
             if cur_time - self.last_update > self.update_every_ms / 1000:
+                self.snake.cement_direction()
                 self.snake.update_position()
                 if self.collision_detection():
                     self.GameOn = False
@@ -313,6 +343,6 @@ class Game:
 
 
 if __name__ == "__main__":
-    g = Game(ms_per_update=250,console_output=True, get_input=True)
+    g = Game(ms_per_update=250, console_output=True, get_input=True)
     g.game_loop()
 
