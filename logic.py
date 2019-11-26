@@ -10,6 +10,10 @@ S = SOUTH = "s"
 E = EAST = "e"
 W = WEST = "w"
 
+# Game state constants
+OFF = "off"
+ON = "on"
+OVER = "over"
 
 # DEBUGGING
 RAISE_ERRORS = True
@@ -65,7 +69,6 @@ class Board:
 
     def place_food(self) -> None:
         """Place a bit of food in a random location"""
-        # TODO: Avoid placing food where the user is and where obstacles are.
         y = randrange(0, self.height)
         x = randrange(0, self.width)
 
@@ -209,13 +212,16 @@ class Game:
         AllSnakeNodes.append(self.snake)
 
         self.GameOn = False
-        self.GameState = "Off"
+        self.GameState = OFF
 
     def start_game(self):
+        """Initialise the game variables"""
         self.GameOn = True
+        self.GameState = ON
         self.last_update = time()
 
     def game_single_loop(self):
+        """Run a single game loop, still checks for tick"""
         if self.GameOn:
             # Move the snake and then check for collision
             cur_time = time()
@@ -224,15 +230,14 @@ class Game:
                 self.snake.update_position()
                 if self.collision_detection():
                     self.GameOn = False
-                    self.GameState == "GameOver"
+                    self.GameState = OVER
+                    return None
 
                 self.last_update = time()
 
                 if self.console_output:
                     os.system('cls')
                     self.print_board()
-        else:
-            pass
 
     def game_loop(self):
         """The main game loop"""
@@ -258,6 +263,7 @@ class Game:
                 self.snake.update_position()
                 if self.collision_detection():
                     self.GameOn = False
+                    self.GameState = OVER
                     continue
 
                 self.last_update = time()

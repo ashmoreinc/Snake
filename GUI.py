@@ -125,9 +125,7 @@ class InProgress(tk.Frame):
             self.board_items.append(row)
 
     def board_update(self):
-        if not GAME.GameOn and GAME.GameState == "GameOver":
-            # TODO: Add Game over function
-            self.controller.set_page(EndGame.page_name)
+        """Update the visuals on the board"""
         if GAME.last_update > self.last_update:
             self.last_update = time()
 
@@ -186,7 +184,32 @@ class EndGame(tk.Frame):
 
         self.controller = controller
 
-        # TODO: Create the Game Over page
+        title = tk.Label(self, text="GAME OVER", font=("Verdana", 24))
+        title.pack(side="top", pady=25, fill="x")
+
+        score_frame = tk.Frame(self)
+        score_frame.pack(side="top", pady=25)
+
+        # Score label
+        tk.Label(score_frame, text="You died at the length of: ", font=("Verdana", 20)).grid(row=0, column=0)
+
+        self.score_label = tk.Label(score_frame, text="", font=("Verdana", 20))
+        self.score_label.grid(row=0, column=1)
+
+        # Restart Button
+        tk.Button(self, text="Try Again", bg="#00ee00", height=1, width=20,
+                  state="disabled", font=("Verdana", 18)).pack(side="bottom", pady=10)
+
+        # Quit Button
+        tk.Button(self, text="Quit", bg="#ee0000", height=1, width=20,
+                  font=("Verdana", 18), command=lambda: controller.destroy()).pack(side="bottom", pady=20)
+
+    def game_over(self):
+        """Sets up the page based on the data"""
+
+        score = GAME.snake.level
+
+        self.score_label.configure(text=str(score))
 
     def initialise(self):
         pass
@@ -199,7 +222,11 @@ if __name__ == "__main__":
     # Should not affect game speed as it runs based off of its own independent time evaluations
     def loop_tasks():
         GAME.game_single_loop()
-        win.Pages["InProgress"].board_update()
+        if GAME.GameOn:
+            win.Pages["InProgress"].board_update()
+        if GAME.GameState == game.OVER:
+            win.Pages[EndGame.page_name].game_over()
+            win.set_page(EndGame.page_name)
         win.update_idletasks()
         win.after(0, loop_tasks)
 
