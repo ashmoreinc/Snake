@@ -6,7 +6,14 @@ import PIL.ImageTk
 
 import logic as game
 
+# TODO: Move any reference to game running/logic here
 GAME = game.Game()
+
+
+def restart_game():
+    global GAME
+    del GAME
+    GAME = game.Game()
 
 
 class Window (tk.Tk):
@@ -24,7 +31,7 @@ class Window (tk.Tk):
 
         self.Pages = {}
         self.CurrentPage = ""
-        for page in (Start, InProgress, EndGame):
+        for page in (Start, InProgress, PauseMenu, EndGame):
             page_name = page.page_name
 
             # Create and store page
@@ -44,6 +51,7 @@ class Window (tk.Tk):
         self.bind("<Key-Left>", self.key_press)
         self.bind("<Key-Right>", self.key_press)
         self.bind("<Key-Down>", self.key_press)
+        self.bind("<Key-p>", self.key_press)
 
     def key_press(self, event):
         if self.CurrentPage == "InProgress":
@@ -55,6 +63,10 @@ class Window (tk.Tk):
                 GAME.snake.update_direction("n")
             elif event.keysym == "Down":
                 GAME.snake.update_direction("s")
+            elif event.keysym == "p" or event.keysym == "P":
+                self.set_page(PauseMenu.page_name)
+
+        # print(event)
 
     def set_page(self, page_name: str) -> bool:
         """Update the page to the page with the given name"""
@@ -184,6 +196,39 @@ class InProgress(tk.Frame):
         self.setup_board()
 
 
+class PauseMenu(tk.Frame):
+    page_name = "PauseMenu"
+
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+
+        self.controller = controller
+
+        # Page title
+        tk.Label(self, text="Game Paused", font=("Helvetica", 24)).pack(side="top", pady=25)
+
+        # Continue playing button
+        tk.Button(self, text="Continue Playing", font=("Helvetica", 20), height=1, width=20, bg="#00ee00",
+                  command=lambda: controller.set_page(InProgress.page_name)).pack(side="top", pady=10)
+
+        # Restart button
+        tk.Button(self, text="Restart Game", font=("Helvetica", 20), height=1, width=20, bg="#ee0000",
+                  command=lambda: self.restart_game()).pack(side="top", pady=10)
+
+        # Quit Button
+        tk.Button(self, text="Quit", bg="#ee0000", height=1, width=20,
+                  font=("Verdana", 20), command=lambda: controller.destroy()).pack(side="top", pady=40)
+
+    def restart_game(self):
+        """Restart the game and return to the hope page"""
+        restart_game()
+
+        self.controller.set_page(Start.page_name)
+
+    def initialise(self):
+        pass
+
+
 class EndGame(tk.Frame):
     page_name = "EndGame"
 
@@ -204,7 +249,6 @@ class EndGame(tk.Frame):
         self.score_label = tk.Label(score_frame, text="", font=("Verdana", 20))
         self.score_label.grid(row=0, column=1)
 
-        # TODO: Restart game function
         # Restart Button
         tk.Button(self, text="Try Again", bg="#00ee00", height=1, width=20,
                   font=("Verdana", 18), command=lambda: self.restart_game()).pack(side="bottom", pady=10)
@@ -215,10 +259,7 @@ class EndGame(tk.Frame):
 
     def restart_game(self):
         """Onclick function for restarting the GAME"""
-        global GAME
-
-        del GAME
-        GAME = game.Game()
+        restart_game()
 
         self.controller.set_page(Start.page_name)
 
@@ -239,9 +280,11 @@ if __name__ == "__main__":
     # Tie the game loop to the GUI mainloop.
     # Should not affect game speed as it runs based off of its own independent time evaluations
     def loop_tasks():
+        global GAME
         if win.CurrentPage == InProgress.page_name:
-            GAME.game_single_loop()
+
             if GAME.GameOn:
+                GAME.game_single_loop()
                 win.Pages["InProgress"].board_update()
             if GAME.GameState == game.OVER:
                 win.Pages[EndGame.page_name].game_over()
