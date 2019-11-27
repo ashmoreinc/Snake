@@ -6,7 +6,6 @@ import PIL.ImageTk
 
 import logic as game
 
-# TODO: Move any reference to game running/logic here
 GAME = game.Game()
 
 
@@ -126,6 +125,29 @@ class InProgress(tk.Frame):
 
         self.last_update = time()
 
+        stats_bar = tk.Frame(self)
+        stats_bar.pack(side="top", fill="x")
+
+        # Score section. Contains a label identifying what it is and a dynamic label which will hold the score
+        # Embedded in a frame for formatting
+        score_section = tk.Frame(stats_bar)
+        score_section.pack(side="left")
+
+        # Identifier
+        tk.Label(score_section, text="Score: ", font=("Helvetica", 20)).grid(row=0, column=0, sticky="nsew")
+
+        self.ScoreText = tk.Label(score_section, text="", font=("Helvetica", 20))
+        self.ScoreText.grid(row=0, column=1, sticky="nsew")
+
+        # Pause menu
+        pause_button = tk.Button(stats_bar, text="Pause", font=("Helvetica", 20), bg="#0055ee",
+                                 command=lambda: controller.set_page(PauseMenu.page_name))
+        pause_button.pack(side="right")
+
+        # TODO: Board redraw on window size change
+        #       Make the board size proportional to the window size.
+        #       Alternatively, lock the window size.
+        # Board Set up
         self.board_area = tk.Frame(self)
         self.board_area.pack(side="top", fill="x")
 
@@ -147,8 +169,8 @@ class InProgress(tk.Frame):
         if GAME.last_update > self.last_update:
             self.last_update = time()
 
-            # TODO: Score system
-            # TODO: Pause system
+            score = GAME.snake.level
+            self.ScoreText.configure(text=str(score))
             # We loop through each grid place, anc check for changes, if there isn't changes, dont update
             for y in range(GAME.board.height):
                 for x in range(GAME.board.width):
@@ -265,7 +287,6 @@ class EndGame(tk.Frame):
 
     def game_over(self):
         """Sets up the page based on the data"""
-
         score = GAME.snake.level
 
         self.score_label.configure(text=str(score))
