@@ -2,7 +2,6 @@ import os
 from random import randrange
 from time import time
 
-import keyboard
 
 # Direction constants
 N = NORTH = "n"
@@ -240,6 +239,8 @@ class Game:
                     self.print_board()
 
     def game_loop(self):
+        if self.get_input:
+            import keyboard
         """The main game loop"""
         self.GameOn = True
 
@@ -288,7 +289,6 @@ class Game:
         if lookup == A:  # Position available
             return False
         elif lookup is None:  # Obstacle or off board
-            # TODO: separate off board and obstacle to allow the snake to wrap around the board
             if self.board_wrapping:
                 if self.snake.X >= self.board.width:  # X-wrap from right to left
                     self.snake.set_position(0, self.snake.Y)
