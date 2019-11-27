@@ -195,6 +195,7 @@ class Game:
     """The main game handler"""
     def __init__(self, ms_per_update: int = 100, wrapping: bool = True,
                  console_output: bool = False, get_input: bool = False):
+        global AllSnakeNodes
         # Tick speed
         # Runs an update every given milliseconds
         self.update_every_ms = ms_per_update
@@ -208,7 +209,9 @@ class Game:
 
         self.get_input = get_input
         self.snake = SnakeNode(int(self.board.width / 2), int(self.board.height / 2), is_head=True)
-        AllSnakeNodes.append(self.snake)
+
+        # Empty the list of all snake nodes and then add the new snake head.
+        AllSnakeNodes = [self.snake]
 
         self.GameOn = False
         self.GameState = OFF

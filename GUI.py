@@ -25,11 +25,17 @@ class Window (tk.Tk):
         self.Pages = {}
         self.CurrentPage = ""
         for page in (Start, InProgress, EndGame):
-            self.Pages[page.page_name] = page(container, self)
-            self.Pages[page.page_name].grid(row=0, column=0, sticky="nsew")
+            page_name = page.page_name
+
+            # Create and store page
+            p = page(container, self)
+            self.Pages[page_name] = p
+
+            # Display the page.
+            p.grid(row=0, column=0, sticky="nsew")
 
             # Run any initialisation that a page may have
-            self.Pages[page.page_name].initialise()
+            p.initialise()
 
         self.set_page(Start.page_name)
 
@@ -68,7 +74,7 @@ class Start(tk.Frame):
         self.controller = controller
 
         # Pad the whole page
-        self.grid(padx=50, pady=25)
+        # self.grid(padx=50, pady=25)
 
         # Title image
         img = PIL.Image.open("Files/Images/Title.png")
@@ -129,6 +135,8 @@ class InProgress(tk.Frame):
         if GAME.last_update > self.last_update:
             self.last_update = time()
 
+            # TODO: Score system
+            # TODO: Pause system
             # We loop through each grid place, anc check for changes, if there isn't changes, dont update
             for y in range(GAME.board.height):
                 for x in range(GAME.board.width):
@@ -196,13 +204,23 @@ class EndGame(tk.Frame):
         self.score_label = tk.Label(score_frame, text="", font=("Verdana", 20))
         self.score_label.grid(row=0, column=1)
 
+        # TODO: Restart game function
         # Restart Button
         tk.Button(self, text="Try Again", bg="#00ee00", height=1, width=20,
-                  state="disabled", font=("Verdana", 18)).pack(side="bottom", pady=10)
+                  font=("Verdana", 18), command=lambda: self.restart_game()).pack(side="bottom", pady=10)
 
         # Quit Button
         tk.Button(self, text="Quit", bg="#ee0000", height=1, width=20,
                   font=("Verdana", 18), command=lambda: controller.destroy()).pack(side="bottom", pady=20)
+
+    def restart_game(self):
+        """Onclick function for restarting the GAME"""
+        global GAME
+
+        del GAME
+        GAME = game.Game()
+
+        self.controller.set_page(Start.page_name)
 
     def game_over(self):
         """Sets up the page based on the data"""
@@ -221,12 +239,13 @@ if __name__ == "__main__":
     # Tie the game loop to the GUI mainloop.
     # Should not affect game speed as it runs based off of its own independent time evaluations
     def loop_tasks():
-        GAME.game_single_loop()
-        if GAME.GameOn:
-            win.Pages["InProgress"].board_update()
-        if GAME.GameState == game.OVER:
-            win.Pages[EndGame.page_name].game_over()
-            win.set_page(EndGame.page_name)
+        if win.CurrentPage == InProgress.page_name:
+            GAME.game_single_loop()
+            if GAME.GameOn:
+                win.Pages["InProgress"].board_update()
+            if GAME.GameState == game.OVER:
+                win.Pages[EndGame.page_name].game_over()
+                win.set_page(EndGame.page_name)
         win.update_idletasks()
         win.after(0, loop_tasks)
 
