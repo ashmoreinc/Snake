@@ -1,7 +1,7 @@
+import json
 import os
 from random import randrange
 from time import time
-
 
 # Direction constants
 N = NORTH = "n"
@@ -38,21 +38,27 @@ AllSnakeNodes = []
 
 class Board:
     """The main board controller for the game"""
+
     def __init__(self, width: int = 30, height: int = 30):
         self.width = width
         self.height = height
 
         # Set up the grid
-        self.grid = []
-        for y in range(height):
-            row = []
-            for x in range(width):
-                row.append(AVAIL)
-            self.grid.append(row)
+        self.setup_grid()
 
         # Food
         self.food_pos = []  # x, y
         self.place_food()
+
+    def setup_grid(self):
+        """Sets up the grid data"""
+        self.grid = []
+
+        for y in range(self.height):
+            row = []
+            for x in range(self.width):
+                row.append(AVAIL)
+            self.grid.append(row)
 
     def pos_lookup(self, x: int, y: int) -> int:
         """Looks up whats at the coords given and returns that
@@ -92,6 +98,7 @@ class Board:
 
 class SnakeNode:
     """The main snake class"""
+
     def __init__(self, pos_x: int, pos_y: int, is_head: bool = False):
         self.X = pos_x
         self.Y = pos_y
@@ -137,8 +144,9 @@ class SnakeNode:
             self.X -= 1
         else:
             # Default to north if there invalid data in the Direction attr
-            report_error(f"SnakeNode.Direction ({self.direction}) is not one of the 4 directions required. ({N}, {S}, {E} or {W})",
-                         error_type=TypeError, raise_err=True)
+            report_error(
+                f"SnakeNode.Direction ({self.direction}) is not one of the 4 directions required. ({N}, {S}, {E} or {W})",
+                error_type=TypeError, raise_err=True)
 
             self.direction = N
             self.update_position()
@@ -193,8 +201,10 @@ class SnakeNode:
 
 class Game:
     """The main game handler"""
+
     def __init__(self, ms_per_update: int = 100, wrapping: bool = True,
-                 console_output: bool = False, get_input: bool = False):
+                 console_output: bool = False, get_input: bool = False,
+                 settings_file: str = None):
         global AllSnakeNodes
         # Tick speed
         # Runs an update every given milliseconds
@@ -215,6 +225,79 @@ class Game:
 
         self.GameOn = False
         self.GameState = OFF
+
+        # Settings
+        self.settings_file = settings_file
+        if settings_file is not None:
+            self.load_settings()
+
+    def load_settings(self) -> bool:
+        """Update attributes based on settings file"""
+        if self.GameOn:  # Dont load settings if game in progress
+            return False
+
+        if self.settings_file is None:
+            return False
+        else:
+            path = "Files/Settings/"
+            filepath = path + self.settings_file
+
+            with open(filepath, "r") as file:
+                try:
+                    data = json.loads(file.read())
+                except Exception as e:
+                    # print(e)
+                    report_error("File load issue. Check file format", error_type=IOError, raise_err=True)
+                    return False
+
+            if "width" in data:
+                self.board.width = int(data["width"])
+
+            if "height" in data:
+                self.board.height = int(data["height"])
+
+            if "tick_speed" in data:
+                self.update_every_ms = int(data["tick_speed"])
+
+            if "height" in data or "width" in data:
+                self.board.setup_grid()
+                self.board.place_food()
+            return True
+
+    def set_settings_file(self, filename: str) -> None:
+        """Change the settings file"""
+        self.settings_file = filename
+
+    def update_settings(self, height: int = None, width: int = None, tick_speed: int = None) -> bool:
+        """Update a settings file"""
+
+        # file not set
+        if self.settings_file is None:
+            return False
+
+        if height is None and width is None and tick_speed is None:
+            return False
+
+        # Set data
+        if height is None:
+            height = self.board.height
+        if width is None:
+            width = self.board.width
+        if tick_speed is None:
+            tick_speed = self.update_every_ms
+
+        data = {"height": height,
+                "width": width,
+                "tick_speed": tick_speed}
+
+        # Upload to file
+        path = "Files/Settings/"
+        filepath = path + self.settings_file
+
+        with open(filepath, "w") as file:
+            json.dump(data, file)
+
+        return True
 
     def start_game(self):
         """Initialise the game variables"""
@@ -302,7 +385,8 @@ class Game:
                 elif self.snake.Y < 0:  # Y wrap from top to bottom
                     self.snake.set_position(self.snake.X, self.board.height - 1)
                 else:
-                    report_error("None returned when no reason for it is observed", error_type=TypeError, raise_err=True)
+                    report_error("None returned when no reason for it is observed", error_type=TypeError,
+                                 raise_err=True)
 
                 self.collision_detection()
                 return False
@@ -354,4 +438,3 @@ class Game:
 if __name__ == "__main__":
     g = Game(ms_per_update=250, console_output=True, get_input=True)
     g.game_loop()
-
