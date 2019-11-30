@@ -38,7 +38,7 @@ class Window (tk.Tk):
         tk.Tk.__init__(self, *args, **kwargs)
 
         self.title('Hungry Python')
-
+        self.iconbitmap(r'Files/Images/icon.ico')
         # Main Container
         container = tk.Frame(self)
         container.pack(side="top", fill="both")
@@ -65,11 +65,7 @@ class Window (tk.Tk):
         self.set_page(Start.page_name)
 
         # Set up the event manager
-        self.bind("<Key-Up>", self.key_press)
-        self.bind("<Key-Left>", self.key_press)
-        self.bind("<Key-Right>", self.key_press)
-        self.bind("<Key-Down>", self.key_press)
-        self.bind("<Key-p>", self.key_press)
+        self.bind("<Key>", self.key_press)
 
     def key_press(self, event):
         if self.CurrentPage == "InProgress":
@@ -178,23 +174,32 @@ class Settings(tk.Frame):
         tk.Label(input_pane, text="Tick Speed", font=FONT_M,
                  bg=COLOURS["background"]).grid(row=3, column=0, sticky="w", padx=5)
 
-        # Split the next section off
-        ttk.Separator(input_pane).grid(row=4, column=0, columnspan=2, sticky="ew", pady=10)
-
-        # Colour Mode
-        self.colour_mode = tk.IntVar()
-        # 1 = Standard
-        # 2 = Tritanopia
-        # 3 = Deuteranopia
-        # 4 = Protanopia
-
-
         self.tick_entry = tk.Entry(input_pane, bg="#dddddd", font=FONT_M)
         self.tick_entry.grid(row=3, column=1, padx=5)
 
+        # Split the next section off
+        ttk.Separator(input_pane).grid(row=4, column=0, columnspan=2, sticky="ew", pady=10)
+
+        # TODO: Input settings
+        #       Could implement this by making the user press the key, then recording the keypress
+
+        """
+        # Input
+        # Up button
+        tk.Label(input_pane, text="Up", font=FONT_M, bg=COLOURS["background"]).grid(row=5, column=0, sticky="w")
+        """
+
+
         # TODO: Colour configuration.
         # TODO: Colour Blind presets
-
+        """
+        # Colour Mode
+        self.colour_mode = tk.IntVar()
+        # 1 = Standard
+        # 2 = Tritanopia - 
+        # 3 = Deuteranopia - Green weak
+        # 4 = Protanopia - Red weak
+        """
         # Back button
         tk.Button(self, text="Back", font=FONT_M, bg=COLOURS["button_default"], width=10,
                   command=lambda: controller.set_page(Start.page_name)).pack(side="bottom", pady=10)
@@ -286,7 +291,7 @@ class InProgress(tk.Frame):
         for y in range(GAME.board.height):
             row = []
             for x in range(GAME.board.width):
-                # TODO: Make the width and height configurable (always keep in a ratio of 2:1)
+                # TODO: Make the width and height of label configurable (always keep in a ratio of 2:1)
                 w = tk.Label(self.board_area, width=16, height=8, font=("Helvetica", 1),
                              text=GAME.board.pos_lookup(x, y))
                 w.grid(row=y, column=x, sticky="nsew")
