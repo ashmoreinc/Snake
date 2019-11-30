@@ -8,6 +8,21 @@ import PIL.ImageTk
 
 import logic as game
 
+FONT_L = ("Helvetica", 24)
+FONT_M = ("Helvetica", 20)
+FONT_S = ("Helvetica", 18)
+
+COLOURS = {"background": "#333366",
+           "foreground": "#333344",
+           "snake_head": "#00ee00",
+           "snake_tail": "#009900",
+           "snake_food": "#cc0000",
+           "obstacle": "#000000",
+           "button_good": "#009900",
+           "button_bad": "#cc0000",
+           "button_neutral": "#2222ee",
+           "button_default": "#999999"}
+
 GAME = game.Game(settings_file="settings.json")
 
 
@@ -38,6 +53,8 @@ class Window (tk.Tk):
             # Create and store page
             p = page(container, self)
             self.Pages[page_name] = p
+
+            p.configure(bg=COLOURS["background"])
 
             # Display the page.
             p.grid(row=0, column=0, sticky="nsew")
@@ -94,20 +111,20 @@ class Start(tk.Frame):
         img = PIL.Image.open("Files/Images/Title.png")
         photo = PIL.ImageTk.PhotoImage(img)
 
-        title = tk.Label(self, image=photo)
+        title = tk.Label(self, image=photo, bg=COLOURS["background"])
         title.image = photo
         title.pack(side="top", pady=50)
 
         # Start Button
-        tk.Button(self, text="Start", height=1, width=20, font=('Ariel', 20), bg="#00ee00",
+        tk.Button(self, text="Start", height=1, width=20, font=FONT_M, bg=COLOURS["button_good"],
                   command=lambda: self.start()).pack(side="top", pady=10)
 
         # Settings Button
-        tk.Button(self, text="Settings", height=1, width=20, font=('Ariel', 20), bg="#999999",
+        tk.Button(self, text="Settings", height=1, width=20, font=FONT_M, bg=COLOURS["button_default"],
                   command=lambda: controller.set_page(Settings.page_name)).pack(side="top", pady=10)
 
         # Exit
-        tk.Button(self, text="Exit", height=1, width=20, font=('Ariel', 20), bg="#ee0000",
+        tk.Button(self, text="Exit", height=1, width=20, font=FONT_M, bg=COLOURS["button_bad"],
                   command=lambda: controller.destroy()).pack(side="top", pady=10)
 
     def start(self):
@@ -132,23 +149,25 @@ class Settings(tk.Frame):
         self.controller = controller
 
         # Title
-        tk.Label(self, text="Settings", font=("Helvetica", 24)).pack(side="top", pady=25)
+        tk.Label(self, text="Settings", font=FONT_L, bg=COLOURS["background"]).pack(side="top", pady=25)
 
         # Board width
-        input_pane = tk.Frame(self)
+        input_pane = tk.Frame(self, bg=COLOURS["background"])
         input_pane.pack(side="top", pady=10)
 
         # Label the width
-        tk.Label(input_pane, text="Board Width", font=("Helvetica", 20)).grid(row=0, column=0, sticky="w", padx=5)
+        tk.Label(input_pane, text="Board Width", font=FONT_M,
+                 bg=COLOURS["background"]).grid(row=0, column=0, sticky="w", padx=5)
 
-        self.width_entry = tk.Entry(input_pane, bg="#dddddd", font=("Helvetica", 20))
+        self.width_entry = tk.Entry(input_pane, bg="#dddddd", font=FONT_M)
         self.width_entry.grid(row=0, column=1, padx=5)
 
         # Height
         # Label the Height
-        tk.Label(input_pane, text="Board Height", font=("Helvetica", 20)).grid(row=1, column=0, sticky="w", padx=5)
+        tk.Label(input_pane, text="Board Height", font=FONT_M,
+                 bg=COLOURS["background"]).grid(row=1, column=0, sticky="w", padx=5)
 
-        self.height_entry = tk.Entry(input_pane, bg="#dddddd", font=("Helvetica", 20))
+        self.height_entry = tk.Entry(input_pane, bg="#dddddd", font=FONT_M)
         self.height_entry.grid(row=1, column=1, padx=5)
 
         # Split the next section off
@@ -156,20 +175,32 @@ class Settings(tk.Frame):
 
         # Tick Speed
         # Label tick speed
-        tk.Label(input_pane, text="Tick Speed", font=("Helvetica", 20)).grid(row=3, column=0, sticky="w", padx=5)
+        tk.Label(input_pane, text="Tick Speed", font=FONT_M,
+                 bg=COLOURS["background"]).grid(row=3, column=0, sticky="w", padx=5)
 
-        self.tick_entry = tk.Entry(input_pane, bg="#dddddd", font=("Helvetica", 20))
+        # Split the next section off
+        ttk.Separator(input_pane).grid(row=4, column=0, columnspan=2, sticky="ew", pady=10)
+
+        # Colour Mode
+        self.colour_mode = tk.IntVar()
+        # 1 = Standard
+        # 2 = Tritanopia
+        # 3 = Deuteranopia
+        # 4 = Protanopia
+
+
+        self.tick_entry = tk.Entry(input_pane, bg="#dddddd", font=FONT_M)
         self.tick_entry.grid(row=3, column=1, padx=5)
 
         # TODO: Colour configuration.
         # TODO: Colour Blind presets
 
         # Back button
-        tk.Button(self, text="Back", font=("Helvetica", 20), bg="#999999", width=10,
+        tk.Button(self, text="Back", font=FONT_M, bg=COLOURS["button_default"], width=10,
                   command=lambda: controller.set_page(Start.page_name)).pack(side="bottom", pady=10)
 
         # Update Button
-        tk.Button(self, text="Update", font=("Helvetica", 20), bg="#0055ee", width=10,
+        tk.Button(self, text="Update", font=FONT_M, bg=COLOURS["button_neutral"], width=10,
                   command=lambda: self.update_data()).pack(side="bottom", pady=10)
 
     def update_data(self):
@@ -215,27 +246,27 @@ class InProgress(tk.Frame):
         tk.Frame.__init__(self, parent)
         self.controller = controller
 
-        self.configure(bg="#333344")
+        self.configure(bg=COLOURS["foreground"])
 
         self.last_update = time()
 
-        stats_bar = tk.Frame(self, bg="#333344")
+        stats_bar = tk.Frame(self, bg=COLOURS["foreground"])
         stats_bar.pack(side="top", fill="x")
 
         # Score section. Contains a label identifying what it is and a dynamic label which will hold the score
         # Embedded in a frame for formatting
-        score_section = tk.Frame(stats_bar, bg="#333344")
+        score_section = tk.Frame(stats_bar, bg=COLOURS["foreground"])
         score_section.pack(side="left")
 
         # Identifier
-        tk.Label(score_section, text="Score: ", font=("Helvetica", 20),
-                 bg="#333344", fg="#ffffff").grid(row=0, column=0, sticky="nsew")
+        tk.Label(score_section, text="Score: ", font=FONT_M,
+                 bg=COLOURS["foreground"], fg="#ffffff").grid(row=0, column=0, sticky="nsew")
 
-        self.ScoreText = tk.Label(score_section, text="", bg="#333344", fg="#ffffff", font=("Helvetica", 20))
+        self.ScoreText = tk.Label(score_section, text="", bg=COLOURS["foreground"], fg="#ffffff", font=FONT_M)
         self.ScoreText.grid(row=0, column=1, sticky="nsew")
 
         # Pause menu
-        pause_button = tk.Button(stats_bar, text="Pause", font=("Helvetica", 20), bg="#0055ee",
+        pause_button = tk.Button(stats_bar, text="Pause", font=FONT_M, bg=COLOURS["button_neutral"],
                                  command=lambda: controller.set_page(PauseMenu.page_name))
         pause_button.pack(side="right")
 
@@ -256,7 +287,8 @@ class InProgress(tk.Frame):
             row = []
             for x in range(GAME.board.width):
                 # TODO: Make the width and height configurable (always keep in a ratio of 2:1)
-                w = tk.Label(self.board_area, width=16, height=8, font=("Helvetica", 1), text=GAME.board.pos_lookup(x, y))
+                w = tk.Label(self.board_area, width=16, height=8, font=("Helvetica", 1),
+                             text=GAME.board.pos_lookup(x, y))
                 w.grid(row=y, column=x, sticky="nsew")
                 row.append(w)
             self.board_items.append(row)
@@ -297,15 +329,15 @@ class InProgress(tk.Frame):
 
                     if self.board_items[y][x]['text'] != place_text:
                         if place_text == "S":
-                            self.board_items[y][x].configure(bg="#00ee00", fg="#00ee00")
+                            self.board_items[y][x].configure(bg=COLOURS["snake_head"], fg=COLOURS["snake_head"])
                         elif place_text == "s":
-                            self.board_items[y][x].configure(bg="#009900", fg="#009900")
+                            self.board_items[y][x].configure(bg=COLOURS["snake_tail"], fg=COLOURS["snake_tail"])
                         elif place_text == "X":
-                            self.board_items[y][x].configure(bg="#000000", fg="#000000")
+                            self.board_items[y][x].configure(bg=COLOURS["obstacle"], fg=COLOURS["obstacle"])
                         elif place_text == "O":
-                            self.board_items[y][x].configure(bg="#cc0000", fg="#cc0000")
+                            self.board_items[y][x].configure(bg=COLOURS["snake_food"], fg=COLOURS["snake_food"])
                         else:
-                            self.board_items[y][x].configure(bg="#ffffff", fg="#ffffff")
+                            self.board_items[y][x].configure(bg=COLOURS["background"], fg=COLOURS["background"])
 
                         self.board_items[y][x].configure(text=place_text)
         else:
@@ -328,19 +360,19 @@ class PauseMenu(tk.Frame):
         self.controller = controller
 
         # Page title
-        tk.Label(self, text="Game Paused", font=("Helvetica", 24)).pack(side="top", pady=25)
+        tk.Label(self, text="Game Paused", font=FONT_L, bg=COLOURS["background"]).pack(side="top", pady=25)
 
         # Continue playing button
-        tk.Button(self, text="Continue Playing", font=("Helvetica", 20), height=1, width=20, bg="#00ee00",
+        tk.Button(self, text="Continue Playing", font=FONT_M, height=1, width=20, bg=COLOURS["button_good"],
                   command=lambda: controller.set_page(InProgress.page_name)).pack(side="top", pady=10)
 
         # Restart button
-        tk.Button(self, text="Restart Game", font=("Helvetica", 20), height=1, width=20, bg="#ee0000",
+        tk.Button(self, text="Restart Game", font=FONT_M, height=1, width=20, bg=COLOURS["button_bad"],
                   command=lambda: self.restart_game()).pack(side="top", pady=10)
 
         # Quit Button
-        tk.Button(self, text="Quit", bg="#ee0000", height=1, width=20,
-                  font=("Verdana", 20), command=lambda: controller.destroy()).pack(side="top", pady=40)
+        tk.Button(self, text="Quit", bg=COLOURS["button_bad"], height=1, width=20,
+                  font=FONT_M, command=lambda: controller.destroy()).pack(side="top", pady=40)
 
     def restart_game(self):
         """Restart the game and return to the hope page"""
@@ -364,25 +396,26 @@ class EndGame(tk.Frame):
 
         self.controller = controller
 
-        title = tk.Label(self, text="GAME OVER", font=("Verdana", 24))
+        title = tk.Label(self, text="GAME OVER", font=FONT_L, bg=COLOURS["background"])
         title.pack(side="top", pady=25, fill="x")
 
         score_frame = tk.Frame(self)
         score_frame.pack(side="top", pady=25)
 
         # Score label
-        tk.Label(score_frame, text="You died at the length of: ", font=("Verdana", 20)).grid(row=0, column=0)
+        tk.Label(score_frame, text="You died at the length of: ", font=FONT_M,
+                 bg=COLOURS["background"]).grid(row=0, column=0)
 
-        self.score_label = tk.Label(score_frame, text="", font=("Verdana", 20))
+        self.score_label = tk.Label(score_frame, text="", font=FONT_M, bg=COLOURS["background"])
         self.score_label.grid(row=0, column=1)
 
         # Restart Button
-        tk.Button(self, text="Try Again", bg="#00ee00", height=1, width=20,
-                  font=("Verdana", 18), command=lambda: self.restart_game()).pack(side="bottom", pady=10)
+        tk.Button(self, text="Try Again", bg=COLOURS["button_good"], height=1, width=20,
+                  font=FONT_S, command=lambda: self.restart_game()).pack(side="bottom", pady=10)
 
         # Quit Button
-        tk.Button(self, text="Quit", bg="#ee0000", height=1, width=20,
-                  font=("Verdana", 18), command=lambda: controller.destroy()).pack(side="bottom", pady=20)
+        tk.Button(self, text="Quit", bg=COLOURS["button_bad"], height=1, width=20,
+                  font=FONT_S, command=lambda: controller.destroy()).pack(side="bottom", pady=20)
 
     def restart_game(self):
         """Onclick function for restarting the GAME"""
