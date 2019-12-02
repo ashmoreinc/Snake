@@ -1,7 +1,9 @@
 import tkinter as tk
 import tkinter.ttk as ttk
-from time import time
 from tkinter.messagebox import showerror
+from tkinter.colorchooser import askcolor
+
+from time import time
 
 import PIL.Image
 import PIL.ImageTk
@@ -12,7 +14,7 @@ FONT_L = ("Helvetica", 24)
 FONT_M = ("Helvetica", 20)
 FONT_S = ("Helvetica", 18)
 
-COLOURS = {"background": "#333366",
+COLOURS = {"background": "#ffffff",
            "foreground": "#333344",
            "snake_head": "#00ee00",
            "snake_tail": "#009900",
@@ -23,6 +25,12 @@ COLOURS = {"background": "#333366",
            "button_neutral": "#2222ee",
            "button_default": "#999999"}
 
+COLOURS_COLBLIND = {"snake_tail": "#0a284b",
+                    "snake_head": "#235fa4",
+                    "snake_food": "#ff4242"}
+
+COLOUR_BLIND_MODE = False
+
 GAME = game.Game(settings_file="settings.json")
 
 
@@ -32,8 +40,9 @@ def restart_game():
     GAME = game.Game(settings_file="settings.json")
 
 
-class Window (tk.Tk):
+class Window(tk.Tk):
     """Window handler"""
+
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
 
@@ -189,17 +198,14 @@ class Settings(tk.Frame):
         tk.Label(input_pane, text="Up", font=FONT_M, bg=COLOURS["background"]).grid(row=5, column=0, sticky="w")
         """
 
+        # Colour blind section
+        self.col_blind_var = tk.IntVar()
 
-        # TODO: Colour configuration.
-        # TODO: Colour Blind presets
-        """
-        # Colour Mode
-        self.colour_mode = tk.IntVar()
-        # 1 = Standard
-        # 2 = Tritanopia - 
-        # 3 = Deuteranopia - Green weak
-        # 4 = Protanopia - Red weak
-        """
+        # Label
+        tk.Label(input_pane, text="Colour blind mode", font=FONT_M, bg=COLOURS["background"]).grid(row=5, column=0)
+
+        tk.Checkbutton(input_pane, variable=self.col_blind_var, bg=COLOURS["background"]).grid(row=5, column=1)
+
         # Back button
         tk.Button(self, text="Back", font=FONT_M, bg=COLOURS["button_default"], width=10,
                   command=lambda: controller.set_page(Start.page_name)).pack(side="bottom", pady=10)
@@ -210,9 +216,17 @@ class Settings(tk.Frame):
 
     def update_data(self):
         """Send the data to the game handler to update"""
+        global COLOUR_BLIND_MODE
         height = int(self.height_entry.get())
         width = int(self.width_entry.get())
         tick = int(self.tick_entry.get())
+
+        col_blind = self.col_blind_var.get()
+
+        if col_blind == 1:
+            COLOUR_BLIND_MODE = True
+        else:
+            COLOUR_BLIND_MODE = False
 
         if not GAME.update_settings(height=height, width=width, tick_speed=tick):
             showerror("An error has occurred.",
@@ -288,6 +302,10 @@ class InProgress(tk.Frame):
     def setup_board(self):
         """Create the board and board widgets"""
         self.board_items = []
+
+        for child in self.board_area.winfo_children():
+            child.destroy()
+
         for y in range(GAME.board.height):
             row = []
             for x in range(GAME.board.width):
@@ -334,13 +352,25 @@ class InProgress(tk.Frame):
 
                     if self.board_items[y][x]['text'] != place_text:
                         if place_text == "S":
-                            self.board_items[y][x].configure(bg=COLOURS["snake_head"], fg=COLOURS["snake_head"])
+                            if COLOUR_BLIND_MODE:
+                                self.board_items[y][x].configure(bg=COLOURS_COLBLIND["snake_head"],
+                                                                 fg=COLOURS_COLBLIND["snake_head"])
+                            else:
+                                self.board_items[y][x].configure(bg=COLOURS["snake_head"], fg=COLOURS["snake_head"])
                         elif place_text == "s":
-                            self.board_items[y][x].configure(bg=COLOURS["snake_tail"], fg=COLOURS["snake_tail"])
+                            if COLOUR_BLIND_MODE:
+                                self.board_items[y][x].configure(bg=COLOURS_COLBLIND["snake_tail"],
+                                                                 fg=COLOURS_COLBLIND["snake_tail"])
+                            else:
+                                self.board_items[y][x].configure(bg=COLOURS["snake_tail"], fg=COLOURS["snake_tail"])
                         elif place_text == "X":
                             self.board_items[y][x].configure(bg=COLOURS["obstacle"], fg=COLOURS["obstacle"])
                         elif place_text == "O":
-                            self.board_items[y][x].configure(bg=COLOURS["snake_food"], fg=COLOURS["snake_food"])
+                            if COLOUR_BLIND_MODE:
+                                self.board_items[y][x].configure(bg=COLOURS_COLBLIND["snake_food"],
+                                                                 fg=COLOURS_COLBLIND["snake_food"])
+                            else:
+                                self.board_items[y][x].configure(bg=COLOURS["snake_food"], fg=COLOURS["snake_food"])
                         else:
                             self.board_items[y][x].configure(bg=COLOURS["background"], fg=COLOURS["background"])
 
@@ -357,6 +387,7 @@ class InProgress(tk.Frame):
 
 
 class PauseMenu(tk.Frame):
+    """Pause Menu page"""
     page_name = "PauseMenu"
 
     def __init__(self, parent, controller):
@@ -445,6 +476,7 @@ class EndGame(tk.Frame):
 if __name__ == "__main__":
     win = Window()
 
+
     # Tie the game loop to the GUI mainloop.
     # Should not affect game speed as it runs based off of its own independent time evaluations
     def loop_tasks():
@@ -458,6 +490,7 @@ if __name__ == "__main__":
                 win.set_page(EndGame.page_name)
         win.update_idletasks()
         win.after(0, loop_tasks)
+
 
     win.after(10, loop_tasks)
     win.mainloop()
