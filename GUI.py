@@ -1,14 +1,15 @@
+import json
 import tkinter as tk
 import tkinter.ttk as ttk
-from tkinter.messagebox import showerror
-from tkinter.colorchooser import askcolor
-
 from time import time
+from tkinter.messagebox import showerror
 
 import PIL.Image
 import PIL.ImageTk
 
 import logic as game
+
+# from tkinter.colorchooser import askcolor
 
 FONT_L = ("Helvetica", 24)
 FONT_M = ("Helvetica", 20)
@@ -31,13 +32,84 @@ COLOURS_COLBLIND = {"snake_tail": "#0a284b",
 
 COLOUR_BLIND_MODE = False
 
-GAME = game.Game(settings_file="settings.json")
+BUTTONS = {"left":"Left",
+           "right":"Right",
+           "up":"Up",
+           "down":"Down"}
+
+
+def load_settings(filename="settings.json"):
+    global COLOUR_BLIND_MODE
+    """Loads the settings into memory"""
+    filepath = "Files/Settings/" + filename
+
+    try:
+        with open(filepath, "r") as file:
+            data = json.load(file)
+    except Exception as e:
+        print(e)
+        showerror("Error loading settings data",
+                  "An error occurred when trying to fetch settings data. Reverting to default data.")
+        return None
+
+    if "colour_blind" in data:
+        if type(data["colour_blind"]) is bool:
+            COLOUR_BLIND_MODE = data["colour_blind"]
+
+    if "control_up" in data:
+        BUTTONS["up"] = data["control_up"]
+
+    if "control_down" in data:
+        BUTTONS["down"] = data["control_down"]
+
+    if "control_left" in data:
+        BUTTONS["left"] = data["control_left"]
+
+    if "control_right" in data:
+        BUTTONS["right"] = data["control_right"]
+
+
+def save_settings(filename: str = "settings.json", colour_blind: bool = None,
+                  control_left: str = None, control_right: str = None,
+                  control_up: str = None, control_down: str = None) -> bool:
+    """Update the settings file"""
+
+    filepath = "Files/Settings/" + filename
+
+    try:
+        with open(filepath, "r") as file:
+            data = json.load(file.read())
+    except:
+        data = {}
+
+    if colour_blind is not None:
+        data["colour_blind"] = colour_blind
+
+    if control_left is not None:
+        data["control_left"] = control_left
+
+    if control_right is not None:
+        data["control_right"] = control_right
+
+    if control_up is not None:
+        data["control_up"] = control_up
+
+    if control_down is not None:
+        data["control_down"] = control_down
+
+    with open(filepath, "w") as file:
+        json.dump(data, file)
+
+    return True
+
+
+GAME = game.Game(settings_file="game_settings.json")
 
 
 def restart_game():
     global GAME
     del GAME
-    GAME = game.Game(settings_file="settings.json")
+    GAME = game.Game(settings_file="game_settings.json")
 
 
 class Window(tk.Tk):
@@ -74,21 +146,25 @@ class Window(tk.Tk):
         self.set_page(Start.page_name)
 
         # Set up the event manager
+        self.last_key = None
         self.bind("<Key>", self.key_press)
 
     def key_press(self, event):
         if self.CurrentPage == "InProgress":
-            if event.keysym == "Right":
+            if event.keysym.lower() == BUTTONS["right"].lower():
                 GAME.snake.update_direction("e")
-            elif event.keysym == "Left":
+            elif event.keysym.lower() == BUTTONS["left"].lower():
                 GAME.snake.update_direction("w")
-            elif event.keysym == "Up":
+            elif event.keysym.lower() == BUTTONS["up"].lower():
                 GAME.snake.update_direction("n")
-            elif event.keysym == "Down":
+            elif event.keysym.lower() == BUTTONS["down"].lower():
                 GAME.snake.update_direction("s")
-            elif event.keysym == "p" or event.keysym == "P":
+            elif event.keysym.lower() == "p":
                 self.set_page(PauseMenu.page_name)
+        if self.CurrentPage == "Settings":
+            self.Pages[self.CurrentPage].on_key_event(event)
 
+        self.last_key = event
         # print(event)
 
     def set_page(self, page_name: str) -> bool:
@@ -186,18 +262,6 @@ class Settings(tk.Frame):
         self.tick_entry = tk.Entry(input_pane, bg="#dddddd", font=FONT_M)
         self.tick_entry.grid(row=3, column=1, padx=5)
 
-        # Split the next section off
-        ttk.Separator(input_pane).grid(row=4, column=0, columnspan=2, sticky="ew", pady=10)
-
-        # TODO: Input settings
-        #       Could implement this by making the user press the key, then recording the keypress
-
-        """
-        # Input
-        # Up button
-        tk.Label(input_pane, text="Up", font=FONT_M, bg=COLOURS["background"]).grid(row=5, column=0, sticky="w")
-        """
-
         # Colour blind section
         self.col_blind_var = tk.IntVar()
 
@@ -205,6 +269,59 @@ class Settings(tk.Frame):
         tk.Label(input_pane, text="Colour blind mode", font=FONT_M, bg=COLOURS["background"]).grid(row=5, column=0)
 
         tk.Checkbutton(input_pane, variable=self.col_blind_var, bg=COLOURS["background"]).grid(row=5, column=1)
+
+        # Split the next section off
+        ttk.Separator(input_pane).grid(row=6, column=0, columnspan=2, sticky="ew", pady=10)
+
+        # Input
+        tk.Label(input_pane, text="Control Input",
+                 font=FONT_M, bg=COLOURS["background"]).grid(row=7, column=0, columnspan=2, stick="ew")
+
+        # Use dict() so that is a copy, not a reference
+        self.new_buttons = dict(BUTTONS)
+
+        self.last_key_press = None  # Stores the last key press
+        self.bind("<Key>", self.on_key_event)
+        self.key_wait = None  # Stores which key we are waiting to set
+
+        row = 7
+
+        self.input_labels = {}
+        self.update_buttons = {}
+        self.set_buttons = {}
+        self.cancel_buttons = {}
+        for direction in ["up", "down", "left", "right"]:
+            row += 1
+            frame = tk.LabelFrame(input_pane, text=direction.capitalize() + " key",
+                                  font=FONT_M, bg=COLOURS["background"])
+            frame.grid(row=row, column=0, columnspan=2, sticky="nsew")
+
+            # Create and store the Label
+            label = tk.Label(frame, text=BUTTONS[direction], width=7, font=FONT_M, bg=COLOURS["background"])
+            label.grid(row=0, column=0, sticky="nsw")
+
+            self.input_labels[direction] = label
+
+            # Create and store the change button
+            change = tk.Button(frame, text="Change", font=FONT_M, bg=COLOURS["button_neutral"],
+                               command=lambda d=direction: self.update_control(d))
+            change.grid(row=0, column=1, sticky="nsew", pady=5, padx=5)
+
+            self.update_buttons[direction] = change
+
+            # Create and store the set buttons
+            _set = tk.Button(frame, text="Set", font=FONT_M, bg=COLOURS["button_good"], state="disabled",
+                             command=lambda d=direction: self.set_control(d))
+            _set.grid(row=0, column=2, sticky="nsew", pady=5)
+
+            self.set_buttons[direction] = _set
+
+            # Create and store the cancel button
+            canc = tk.Button(frame, text="Cancel", font=FONT_M, bg=COLOURS["button_bad"], state="disabled",
+                             command=lambda: self.reset_control())
+            canc.grid(row=0, column=3, sticky="nsew", pady=5, padx=5)
+
+            self.cancel_buttons[direction] = canc
 
         # Back button
         tk.Button(self, text="Back", font=FONT_M, bg=COLOURS["button_default"], width=10,
@@ -214,13 +331,50 @@ class Settings(tk.Frame):
         tk.Button(self, text="Update", font=FONT_M, bg=COLOURS["button_neutral"], width=10,
                   command=lambda: self.update_data()).pack(side="bottom", pady=10)
 
+    def on_key_event(self, event):
+        """Handles key press events"""
+        self.last_key_press = event
+
+        if self.key_wait is not None:
+            self.input_labels[self.key_wait].configure(text=event.keysym)
+
+    def update_control(self, dirct):
+        """Update the which key controls which snake function (up, down etc)"""
+        if self.key_wait is not None:
+            self.reset_control()
+
+        # Now set the new buttons
+        self.key_wait = dirct
+
+        self.set_buttons[dirct].configure(state="normal")
+        self.cancel_buttons[dirct].configure(state="normal")
+        self.update_buttons[dirct].configure(state="disabled")
+
+    def reset_control(self):
+        """Cancel the input control"""
+        self.key_wait = None
+        # Reset all the buttons
+        for dirct in ["up", "down", "left", "right"]:
+            self.cancel_buttons[dirct].configure(state="disabled")
+            self.set_buttons[dirct].configure(state="disabled")
+            self.update_buttons[dirct].configure(state="normal")
+
+            self.input_labels[dirct].configure(text=self.new_buttons[dirct])
+
+    def set_control(self, dirct):
+        """Set the last pressed key as the control for the given direction"""
+        global BUTTONS
+        if self.last_key_press is not None:
+            key = self.last_key_press.keysym
+            self.new_buttons[dirct] = key
+            self.input_labels[dirct].configure(text=key)
+
+        self.reset_control()
+
     def update_data(self):
         """Send the data to the game handler to update"""
         global COLOUR_BLIND_MODE
-        height = int(self.height_entry.get())
-        width = int(self.width_entry.get())
-        tick = int(self.tick_entry.get())
-
+        # Colour blindness
         col_blind = self.col_blind_var.get()
 
         if col_blind == 1:
@@ -228,17 +382,38 @@ class Settings(tk.Frame):
         else:
             COLOUR_BLIND_MODE = False
 
+        # Controls
+        if len(self.new_buttons) > 0:
+            for dirct in self.new_buttons:
+                BUTTONS[dirct] = self.new_buttons[dirct]
+
+        # Game settings
+        height = int(self.height_entry.get())
+        width = int(self.width_entry.get())
+        tick = int(self.tick_entry.get())
+
         if not GAME.update_settings(height=height, width=width, tick_speed=tick):
             showerror("An error has occurred.",
-                      "An error occurred when trying to update the settings. Please try again.")
+                      "An error occurred when trying to update the game settings. Please try again.")
         else:
             GAME.load_settings()
+
+        col_blind = True if col_blind == 1 else False
+
+        save_settings(colour_blind=col_blind, control_down=BUTTONS["down"], control_up=BUTTONS["up"],
+                      control_left=BUTTONS["left"], control_right=BUTTONS["right"])
 
     def populate_data(self):
         """Populate the data inputs with the current data"""
         height = str(GAME.board.height)
         width = str(GAME.board.width)
         tick_speed = str(GAME.update_every_ms)
+
+        colour_blind = 0
+        if COLOUR_BLIND_MODE:
+            colour_blind = 1
+
+        self.col_blind_var.set(colour_blind)
 
         # Clear all the inputs
         self.height_entry.delete(0, tk.END)
@@ -294,7 +469,7 @@ class InProgress(tk.Frame):
         #       Alternatively, lock the window size.
         #       Though, with a contrasting background, it is not as important
         # Board Set up
-        self.board_area = tk.Frame(self)
+        self.board_area = tk.Frame(self, bg=COLOURS["foreground"])
         self.board_area.pack(side="top")
 
         self.board_items = []  # a list of lists, similar to the game board. hols widgets
@@ -383,6 +558,7 @@ class InProgress(tk.Frame):
         self.setup_board()
 
     def initialise(self):
+        self.configure(bg=COLOURS["foreground"])
         self.setup_board()
 
 
@@ -474,8 +650,8 @@ class EndGame(tk.Frame):
 
 
 if __name__ == "__main__":
+    load_settings()
     win = Window()
-
 
     # Tie the game loop to the GUI mainloop.
     # Should not affect game speed as it runs based off of its own independent time evaluations

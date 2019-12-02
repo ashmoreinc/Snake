@@ -244,7 +244,7 @@ class Game:
 
             with open(filepath, "r") as file:
                 try:
-                    data = json.loads(file.read())
+                    data = json.load(file)
                 except Exception as e:
                     # print(e)
                     report_error("File load issue. Check file format", error_type=IOError, raise_err=True)
